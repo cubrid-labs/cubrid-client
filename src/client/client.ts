@@ -31,7 +31,7 @@ export class CubridClient implements Queryable {
   }
 
   async transaction<T>(callback: TransactionCallback<T>): Promise<T> {
-    const connection = await Promise.resolve(this.connectionFactory(this.config));
+    const connection = await this.connectionFactory(this.config);
     const transaction = new CubridTransaction(connection);
 
     try {

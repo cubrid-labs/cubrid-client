@@ -44,6 +44,7 @@ async function loadNodeCubridDriver(): Promise<NodeCubridDriver> {
 
 export class NodeCubridAdapter implements DriverAdapter {
   private rawConnection: NodeCubridRawConnection | undefined;
+  private connected = false;
 
   constructor(
     private readonly config: ClientConfig,
@@ -55,6 +56,7 @@ export class NodeCubridAdapter implements DriverAdapter {
 
     try {
       await connection.connect();
+      this.connected = true;
     } catch (error) {
       throw mapError("connection", error, "Failed to connect to CUBRID.");
     }
@@ -67,7 +69,10 @@ export class NodeCubridAdapter implements DriverAdapter {
     const connection = await this.getConnection();
 
     try {
-      await connection.connect();
+      if (!this.connected) {
+        await connection.connect();
+        this.connected = true;
+      }
 
       if (typeof connection.queryAllAsObjects === "function") {
         return (await connection.queryAllAsObjects(sql, params)) as T[];
@@ -78,7 +83,7 @@ export class NodeCubridAdapter implements DriverAdapter {
         return mapResult(result) as T[];
       }
 
-      return [];
+      throw new Error("node-cubrid driver does not expose a supported query method.");
     } catch (error) {
       throw mapError("query", error, "Failed to execute CUBRID query.");
     }
@@ -88,7 +93,10 @@ export class NodeCubridAdapter implements DriverAdapter {
     const connection = await this.getConnection();
 
     try {
-      await connection.connect();
+      if (!this.connected) {
+        await connection.connect();
+        this.connected = true;
+      }
       await connection.setAutoCommitMode(false);
     } catch (error) {
       throw mapError("transaction", error, "Failed to start transaction.");
@@ -123,6 +131,7 @@ export class NodeCubridAdapter implements DriverAdapter {
     try {
       await this.rawConnection.end();
       this.rawConnection = undefined;
+      this.connected = false;
     } catch (error) {
       throw mapError("connection", error, "Failed to close CUBRID connection.");
     }

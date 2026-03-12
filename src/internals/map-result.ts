@@ -15,15 +15,16 @@ export function mapResult(result: unknown): QueryResultRow[] {
   }
 
   const candidate = result as ColumnResultShape;
+  const { ColumnNames: columnNames, ColumnValues: columnValues } = candidate;
 
-  if (!candidate.ColumnNames || !candidate.ColumnValues) {
+  if (!columnNames || !columnValues) {
     return [];
   }
 
-  return candidate.ColumnValues.map((row) => {
+  return columnValues.map((row) => {
     const mappedRow: QueryResultRow = {};
 
-    candidate.ColumnNames!.forEach((columnName, index) => {
+    columnNames.forEach((columnName, index) => {
       mappedRow[columnName] = row[index];
     });
 

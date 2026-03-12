@@ -410,6 +410,36 @@ test("node-cubrid adapter falls back to queryAll mapping when needed", async () 
   assert.equal(raw.queryAllCalls, 1);
 });
 
+test("node-cubrid adapter connects only once across multiple queries", async () => {
+  const raw = new FakeRawConnection();
+  raw.queryAllAsObjectsResult = [{ id: 1 }];
+  const driver: NodeCubridDriver = {
+    createConnection: () => raw,
+  };
+  const adapter = new NodeCubridAdapter(baseConfig(), async () => driver);
+
+  await adapter.query("SELECT 1");
+  await adapter.query("SELECT 2");
+
+  assert.equal(raw.connectCalls, 1);
+  assert.equal(raw.queryAllAsObjectsCalls, 2);
+});
+
+test("node-cubrid adapter throws when no query method is available", async () => {
+  const raw = new FakeRawConnection();
+  raw.queryAllAsObjects = undefined as unknown as NodeCubridRawConnection["queryAllAsObjects"];
+  raw.queryAll = undefined as unknown as NodeCubridRawConnection["queryAll"];
+  const driver: NodeCubridDriver = {
+    createConnection: () => raw,
+  };
+  const adapter = new NodeCubridAdapter(baseConfig(), async () => driver);
+
+  await assert.rejects(
+    adapter.query("SELECT 1"),
+    (error: unknown) => error instanceof QueryError,
+  );
+});
+
 test("node-cubrid adapter maps connection failures", async () => {
   const raw = new FakeRawConnection();
   raw.connectError = new Error("connect");
