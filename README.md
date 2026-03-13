@@ -1,8 +1,8 @@
-# @cubrid/client
+# cubrid-client
 
 Modern TypeScript-first client for the CUBRID database.
 
-`@cubrid/client` provides a Promise-based, fully typed API for Node.js and TypeScript applications that want a cleaner experience than legacy callback-oriented drivers.
+`cubrid-client` provides a Promise-based, fully typed API for Node.js and TypeScript applications that want a cleaner experience than legacy callback-oriented drivers.
 
 ## Features
 
@@ -16,13 +16,13 @@ Modern TypeScript-first client for the CUBRID database.
 ## Installation
 
 ```bash
-npm install @cubrid/client
+npm install cubrid-client
 ```
 
 ## Quick Start
 
 ```ts
-import { createClient } from "@cubrid/client";
+import { createClient } from "cubrid-client";
 
 const db = createClient({
   host: "localhost",
@@ -39,7 +39,7 @@ await db.close();
 ## Typed Queries
 
 ```ts
-import { createClient } from "@cubrid/client";
+import { createClient } from "cubrid-client";
 
 type User = {
   id: number;

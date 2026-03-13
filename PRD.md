@@ -1,8 +1,8 @@
-# PRD - @cubrid/client
+# PRD - cubrid-client
 
 ## Overview
 
-`@cubrid/client` is a modern TypeScript client library for the CUBRID database.
+`cubrid-client` is a modern TypeScript client library for the CUBRID database.
 
 The goal of this project is to provide a developer-friendly, fully typed, and modern API for interacting with CUBRID from Node.js and TypeScript applications.
 
@@ -93,7 +93,7 @@ Allows multiple operations to run atomically.
 ### Import
 
 ```ts
-import { createClient } from "@cubrid/client";
+import { createClient } from "cubrid-client";
 ```
 
 ### Create Client
@@ -183,12 +183,12 @@ docs
 
 ## Packaging
 
-Published on npm as `@cubrid/client`
+Published on npm as `cubrid-client`
 
 Install:
 
 ```bash
-npm install @cubrid/client
+npm install cubrid-client
 ```
 
 ## Compatibility
@@ -203,7 +203,7 @@ Supported modules:
 ## Example Usage
 
 ```ts
-import { createClient } from "@cubrid/client";
+import { createClient } from "cubrid-client";
 
 const db = createClient({
   host: "localhost",

@@ -1,6 +1,6 @@
 # Architecture
 
-`@cubrid/client` wraps `node-cubrid` with a typed Promise-based facade.
+`cubrid-client` wraps `node-cubrid` with a typed Promise-based facade.
 
 ## Layers
 
