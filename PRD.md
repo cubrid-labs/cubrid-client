@@ -238,6 +238,78 @@ console.log(rows);
 - stable API
 - production readiness
 
+## Example-first Design Philosophy
+
+### Why Example-first
+
+CUBRID's ecosystem is small compared to PostgreSQL or MySQL. For a small-ecosystem
+project, the entry barrier must be minimized — users should be able to copy-paste
+working code within 30 seconds of reading the documentation.
+
+> Because the ecosystem is still small, the project provides extensive examples
+> and cookbook-style documentation to lower the adoption barrier.
+
+### Hello World
+
+```bash
+npm install cubrid-client
+```
+
+```typescript
+import { createClient } from "cubrid-client";
+
+const db = createClient({
+  host: "localhost",
+  port: 33000,
+  database: "demodb",
+  user: "dba",
+  password: "",
+});
+
+const rows = await db.query("SELECT * FROM athlete");
+console.log(rows);
+
+await db.close();
+```
+
+This code connects to a CUBRID database, runs a query, and prints the results.
+No ORM setup, no configuration files, no boilerplate.
+
+### AI Agent Discoverability
+
+Modern developers increasingly rely on AI coding assistants — Claude Code, OpenCode,
+Cursor, GitHub Copilot, Devin, and others. These agents read README files, PRDs,
+documentation, and example code to decide which libraries to recommend.
+
+**More examples in documentation = higher probability of AI recommendation.**
+
+By embedding working code directly in the PRD, README, and docs, we ensure that
+AI agents can discover, learn, and recommend cubrid-client accurately.
+
+### Cookbook Integration
+
+The [cubrid-cookbook](https://github.com/cubrid-labs/cubrid-cookbook) repository provides
+production-ready, runnable examples for cubrid-client:
+
+| Example | Description |
+|---|---|
+| `node/cubrid/01_connect.js` | Basic connection and query |
+| `node/cubrid/02_crud.js` | Create, read, update, delete operations |
+| `node/cubrid/03_transactions.js` | Transaction management |
+
+### Inspiration from Successful Projects
+
+Projects that succeeded partly through example-heavy documentation:
+
+| Project | What They Did |
+|---|---|
+| **FastAPI** | Every endpoint documented with runnable examples; became the fastest-growing Python web framework |
+| **LangChain** | Cookbook-first approach drove explosive adoption in the AI space |
+| **SQLAlchemy** | Extensive ORM cookbook and tutorial; de facto Python ORM for 15+ years |
+| **Pandas** | "10 Minutes to pandas" and cookbook lowered entry barrier for data science |
+
+cubrid-client follows the same philosophy: **examples are not supplementary — they are the primary documentation.**
+
 ## License
 
 MIT
