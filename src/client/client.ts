@@ -52,6 +52,33 @@ export class CubridClient implements Queryable {
     }
   }
 
+  async beginTransaction(): Promise<void> {
+    try {
+      const connection = await this.getSharedConnection();
+      await connection.beginTransaction();
+    } catch (error) {
+      throw mapError("transaction", error, "Failed to begin transaction.");
+    }
+  }
+
+  async commit(): Promise<void> {
+    try {
+      const connection = await this.getSharedConnection();
+      await connection.commit();
+    } catch (error) {
+      throw mapError("transaction", error, "Failed to commit.");
+    }
+  }
+
+  async rollback(): Promise<void> {
+    try {
+      const connection = await this.getSharedConnection();
+      await connection.rollback();
+    } catch (error) {
+      throw mapError("transaction", error, "Failed to rollback.");
+    }
+  }
+
   async close(): Promise<void> {
     if (!this.sharedConnectionPromise) {
       return;
