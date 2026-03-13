@@ -16,6 +16,9 @@ export interface NodeCubridRawConnection {
   queryAll:
     | ((sql: string, params?: readonly unknown[]) => Promise<unknown>)
     | undefined;
+  execute:
+    | ((sql: string, params?: readonly unknown[]) => Promise<unknown>)
+    | undefined;
   setAutoCommitMode(enabled: boolean): Promise<void>;
   commit(): Promise<void>;
   rollback(): Promise<void>;
@@ -72,6 +75,15 @@ export class NodeCubridAdapter implements DriverAdapter {
       if (!this.connected) {
         await connection.connect();
         this.connected = true;
+      }
+
+      // DDL/DML statements don't return result sets — use execute() to avoid
+      // CAS_ER_NO_MORE_DATA errors from the fetch phase of queryAll.
+      if (this.isDDLOrDML(sql)) {
+        if (typeof connection.execute === "function") {
+          await connection.execute(sql, params);
+          return [] as unknown as T[];
+        }
       }
 
       if (typeof connection.queryAllAsObjects === "function") {
@@ -135,6 +147,25 @@ export class NodeCubridAdapter implements DriverAdapter {
     } catch (error) {
       throw mapError("connection", error, "Failed to close CUBRID connection.");
     }
+  }
+
+  private isDDLOrDML(sql: string): boolean {
+    const trimmed = sql.trimStart().toUpperCase();
+    return (
+      trimmed.startsWith("INSERT") ||
+      trimmed.startsWith("UPDATE") ||
+      trimmed.startsWith("DELETE") ||
+      trimmed.startsWith("CREATE") ||
+      trimmed.startsWith("DROP") ||
+      trimmed.startsWith("ALTER") ||
+      trimmed.startsWith("TRUNCATE") ||
+      trimmed.startsWith("RENAME") ||
+      trimmed.startsWith("REPLACE") ||
+      trimmed.startsWith("MERGE") ||
+      trimmed.startsWith("SET") ||
+      trimmed.startsWith("GRANT") ||
+      trimmed.startsWith("REVOKE")
+    );
   }
 
   private async getConnection(): Promise<NodeCubridRawConnection> {

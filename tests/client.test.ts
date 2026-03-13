@@ -87,6 +87,8 @@ class FakeRawConnection implements NodeCubridRawConnection {
   connectCalls = 0;
   queryAllAsObjectsCalls = 0;
   queryAllCalls = 0;
+  executeCalls = 0;
+  executedStatements: string[] = [];
   autoCommitValues: boolean[] = [];
   commitCalls = 0;
   rollbackCalls = 0;
@@ -131,6 +133,11 @@ class FakeRawConnection implements NodeCubridRawConnection {
     }
 
     return this.queryAllResult;
+  };
+
+  execute: NodeCubridRawConnection["execute"] = async (sql: string) => {
+    this.executeCalls += 1;
+    this.executedStatements.push(sql);
   };
 
   async setAutoCommitMode(enabled: boolean): Promise<void> {
@@ -559,4 +566,59 @@ test("node-cubrid adapter closes raw connections and maps close failures", async
       error.cause instanceof Error &&
       error.cause.message === "end",
   );
+});
+
+test("node-cubrid adapter routes DDL/DML to execute instead of queryAllAsObjects", async () => {
+  const raw = new FakeRawConnection();
+  raw.queryAllAsObjectsResult = [{ id: 1 }];
+  const driver: NodeCubridDriver = {
+    createConnection: () => raw,
+  };
+  const adapter = new NodeCubridAdapter(baseConfig(), async () => driver);
+
+  // DDL statements should use execute(), not queryAllAsObjects()
+  await adapter.query("CREATE TABLE test_ddl (id INT)");
+  assert.equal(raw.executeCalls, 1);
+  assert.equal(raw.queryAllAsObjectsCalls, 0);
+
+  // DML statements should also use execute()
+  await adapter.query("INSERT INTO test_ddl (id) VALUES (1)");
+  assert.equal(raw.executeCalls, 2);
+
+  await adapter.query("UPDATE test_ddl SET id = 2 WHERE id = 1");
+  assert.equal(raw.executeCalls, 3);
+
+  await adapter.query("DELETE FROM test_ddl WHERE id = 2");
+  assert.equal(raw.executeCalls, 4);
+
+  await adapter.query("DROP TABLE test_ddl");
+  assert.equal(raw.executeCalls, 5);
+
+  // SELECT should still use queryAllAsObjects()
+  await adapter.query("SELECT 1");
+  assert.equal(raw.queryAllAsObjectsCalls, 1);
+  assert.equal(raw.executeCalls, 5);
+});
+
+test("node-cubrid adapter DDL/DML returns empty array", async () => {
+  const raw = new FakeRawConnection();
+  const driver: NodeCubridDriver = {
+    createConnection: () => raw,
+  };
+  const adapter = new NodeCubridAdapter(baseConfig(), async () => driver);
+
+  const result = await adapter.query("CREATE TABLE ddl_test (id INT)");
+  assert.deepEqual(result, []);
+});
+
+test("node-cubrid adapter handles DDL with leading whitespace", async () => {
+  const raw = new FakeRawConnection();
+  const driver: NodeCubridDriver = {
+    createConnection: () => raw,
+  };
+  const adapter = new NodeCubridAdapter(baseConfig(), async () => driver);
+
+  await adapter.query("  \n  INSERT INTO t (id) VALUES (1)");
+  assert.equal(raw.executeCalls, 1);
+  assert.equal(raw.queryAllAsObjectsCalls, 0);
 });
