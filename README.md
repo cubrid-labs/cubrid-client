@@ -1,5 +1,14 @@
 # cubrid-client
 
+<!-- BADGES:START -->
+[![npm version](https://img.shields.io/npm/v/cubrid-client)](https://www.npmjs.com/package/cubrid-client)
+[![node version](https://img.shields.io/node/v/cubrid-client)](https://nodejs.org)
+[![ci workflow](https://github.com/cubrid-labs/cubrid-client/actions/workflows/ci.yml/badge.svg)](https://github.com/cubrid-labs/cubrid-client/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/cubrid-labs/cubrid-client)](https://github.com/cubrid-labs/cubrid-client/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/cubrid-labs/cubrid-client)](https://github.com/cubrid-labs/cubrid-client)
+<!-- BADGES:END -->
+
+
 Modern TypeScript-first client for the CUBRID database.
 
 `cubrid-client` provides a Promise-based, fully typed API for Node.js and TypeScript applications that want a cleaner experience than legacy callback-oriented drivers.
