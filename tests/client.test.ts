@@ -622,3 +622,139 @@ test("node-cubrid adapter handles DDL with leading whitespace", async () => {
   assert.equal(raw.executeCalls, 1);
   assert.equal(raw.queryAllAsObjectsCalls, 0);
 });
+
+// ---------------------------------------------------------------------------
+// CubridClient.beginTransaction / commit / rollback / close coverage
+// ---------------------------------------------------------------------------
+
+test("client beginTransaction delegates to shared connection", async () => {
+  const connection = new FakeConnection();
+  const client = createClient(
+    baseOptions({
+      connectionFactory: () => connection,
+    }),
+  );
+
+  await client.beginTransaction();
+
+  assert.equal(connection.beginCalls, 1);
+});
+
+test("client beginTransaction maps failures to TransactionError", async () => {
+  const connection = new FakeConnection();
+  connection.beginError = new Error("begin");
+  const client = createClient(
+    baseOptions({
+      connectionFactory: () => connection,
+    }),
+  );
+
+  await assert.rejects(
+    client.beginTransaction(),
+    (error: unknown) =>
+      error instanceof TransactionError &&
+      error.cause instanceof Error &&
+      error.cause.message === "begin",
+  );
+});
+
+test("client commit delegates to shared connection", async () => {
+  const connection = new FakeConnection();
+  const client = createClient(
+    baseOptions({
+      connectionFactory: () => connection,
+    }),
+  );
+
+  await client.query("SELECT 1");
+  await client.commit();
+
+  assert.equal(connection.commitCalls, 1);
+});
+
+test("client commit maps failures to TransactionError", async () => {
+  const connection = new FakeConnection();
+  connection.commitError = new Error("commit");
+  const client = createClient(
+    baseOptions({
+      connectionFactory: () => connection,
+    }),
+  );
+
+  await client.query("SELECT 1");
+
+  await assert.rejects(
+    client.commit(),
+    (error: unknown) =>
+      error instanceof TransactionError &&
+      error.cause instanceof Error &&
+      error.cause.message === "commit",
+  );
+});
+
+test("client rollback delegates to shared connection", async () => {
+  const connection = new FakeConnection();
+  const client = createClient(
+    baseOptions({
+      connectionFactory: () => connection,
+    }),
+  );
+
+  await client.query("SELECT 1");
+  await client.rollback();
+
+  assert.equal(connection.rollbackCalls, 1);
+});
+
+test("client rollback maps failures to TransactionError", async () => {
+  const connection = new FakeConnection();
+  connection.rollbackError = new Error("rollback");
+  const client = createClient(
+    baseOptions({
+      connectionFactory: () => connection,
+    }),
+  );
+
+  await client.query("SELECT 1");
+
+  await assert.rejects(
+    client.rollback(),
+    (error: unknown) =>
+      error instanceof TransactionError &&
+      error.cause instanceof Error &&
+      error.cause.message === "rollback",
+  );
+});
+
+test("client close is a no-op when no connection was opened", async () => {
+  const client = createClient(
+    baseOptions({
+      connectionFactory: () => new FakeConnection(),
+    }),
+  );
+
+  // close without ever querying - should not throw
+  await client.close();
+});
+
+// ---------------------------------------------------------------------------
+// mapResult edge case: array input passthrough
+// ---------------------------------------------------------------------------
+
+test("mapResult passes through array input unchanged", () => {
+  const input = [{ id: 1 }, { id: 2 }];
+  assert.deepEqual(mapResult(input), input);
+});
+
+// ---------------------------------------------------------------------------
+// NodeCubridAdapter close when no connection exists
+// ---------------------------------------------------------------------------
+
+test("node-cubrid adapter close is a no-op when no connection was created", async () => {
+  const adapter = new NodeCubridAdapter(baseConfig(), async () => ({
+    createConnection: () => new FakeRawConnection(),
+  }));
+
+  // close without ever connecting - should not throw
+  await adapter.close();
+});
