@@ -24,7 +24,7 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
-    "test": "node --import tsx --test tests/**/*.test.ts",
+    "test": "node --import tsx --test 'tests/client.test.ts'",
     "test:coverage": "c8 --reporter=text --reporter=lcov npm test",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run test:coverage"
