@@ -1,6 +1,6 @@
 # cubrid-client
 
-**Modern TypeScript-first Node.js client for the CUBRID database** — Promise-based, fully typed API with generic query results and structured errors.
+**Modern TypeScript-first Node.js client for the CUBRID database** — zero native dependencies, built-in CAS protocol driver, Promise-based API with full type safety.
 
 [![npm version](https://img.shields.io/npm/v/cubrid-client)](https://www.npmjs.com/package/cubrid-client)
 [![node version](https://img.shields.io/node/v/cubrid-client)](https://nodejs.org)
@@ -11,24 +11,26 @@
 
 ## Why cubrid-client?
 
-The existing `node-cubrid` driver works but has a callback-oriented API, weak TypeScript support, and requires manual result mapping. `cubrid-client` wraps it with a modern, ergonomic interface:
+A modern CUBRID client that speaks the CAS binary protocol directly over TCP — no legacy driver dependencies, no native bindings.
 
-| Feature | node-cubrid | cubrid-client |
-|---------|-------------|---------------|
-| API style | Callback + Promise mix | Pure async/await |
-| TypeScript | No type definitions | Full generics (`query<T>()`) |
-| Results | `{ColumnNames, ColumnValues}` tuples | `Record<string, unknown>[]` objects |
-| Errors | Generic `Error` | `ConnectionError`, `QueryError`, `TransactionError` |
-| Transactions | Manual `setAutoCommit` + `commit`/`rollback` | `transaction(callback)` with auto commit/rollback |
-| DDL/DML handling | Must choose `execute()` vs `queryAll()` | Automatic detection |
+| Feature | cubrid-client |
+|---------|---------------|
+| Protocol | Native CAS binary over TCP |
+| Dependencies | Zero runtime dependencies |
+| API style | Pure async/await |
+| TypeScript | Full generics (`query<T>()`) |
+| Results | `Record<string, unknown>[]` objects |
+| Errors | `ConnectionError`, `QueryError`, `TransactionError` |
+| Transactions | `transaction(callback)` with auto commit/rollback |
+| Node.js | 18+ |
 
 ## Installation
 
 ```bash
-npm install cubrid-client node-cubrid
+npm install cubrid-client
 ```
 
-> `node-cubrid` is a peer dependency — the underlying CUBRID protocol driver.
+No peer dependencies required.
 
 **Requirements**: Node.js 18+, CUBRID 10.2+
 
@@ -86,13 +88,13 @@ const users = await db.query(
 
 // Supported parameter types
 await db.query("INSERT INTO data (a, b, c, d, e, f, g) VALUES (?, ?, ?, ?, ?, ?, ?)", [
-  "text",           // string
-  42,               // number
-  true,             // boolean
-  9007199254740993n, // bigint
-  new Date(),       // Date
-  Buffer.from("binary"), // Buffer
-  null,             // null
+  "text",              // string
+  42,                  // number
+  true,                // boolean
+  9007199254740993n,   // bigint
+  new Date(),          // Date
+  Buffer.from("bin"),  // Buffer
+  null,                // null
 ]);
 ```
 
@@ -167,7 +169,6 @@ Creates a client instance. Connection is established lazily on first query.
 | `user` | `string` | *(required)* | Database user |
 | `password` | `string` | `""` | Password |
 | `connectionTimeout` | `number` | — | Connection timeout (ms) |
-| `maxConnectionRetryCount` | `number` | — | Max retry attempts |
 
 ### `client.query<T>(sql, params?): Promise<T[]>`
 
@@ -195,6 +196,23 @@ Closes the shared connection. Safe to call multiple times.
 
 > 📖 Full API documentation: [docs/API_REFERENCE.md](docs/API_REFERENCE.md)
 
+## Architecture
+
+`cubrid-client` implements the CUBRID CAS binary protocol directly over TCP sockets:
+
+```
+createClient(options)
+  └── CubridClient(config, connectionFactory)
+       └── NativeCubridAdapter (implements ConnectionLike)
+            └── CASConnection (TCP socket, framed binary I/O)
+                 ├── PacketWriter  — binary request encoding
+                 ├── PacketReader  — binary response decoding
+                 ├── Protocol      — CAS command builders/parsers
+                 └── Constants     — function codes, data types
+```
+
+No external protocol drivers needed — the entire CAS handshake, query execution, and result parsing is implemented in TypeScript.
+
 ## Documentation
 
 | Document | Description |
@@ -208,13 +226,13 @@ Closes the shared connection. Safe to call multiple times.
 
 ```text
 src/
+  protocol/        # CAS binary protocol (connection, packet I/O, wire format)
   client/          # CubridClient, CubridTransaction, createClient
-  adapters/        # DriverAdapter interface + NodeCubridAdapter
+  adapters/        # ConnectionLike interface + NativeCubridAdapter
   errors/          # ConnectionError, QueryError, TransactionError
   internals/       # mapError, mapResult, normalizeConfig
   types/           # TypeScript interfaces and type aliases
-tests/             # Vitest test suite (100% statement coverage)
-examples/          # Runnable example scripts
+tests/             # node:test suite (99%+ statement coverage)
 docs/              # Detailed documentation
 ```
 
@@ -224,9 +242,18 @@ docs/              # Detailed documentation
 git clone https://github.com/cubrid-labs/cubrid-client.git
 cd cubrid-client
 npm install
-npm run build        # TypeScript compilation
-npm run check        # Lint + type-check + test
-npm test             # Run tests
+npm run build        # TypeScript compilation (tsup)
+npm test             # Run offline tests
+npm run test:coverage # Coverage report (99%+ statements)
+npm run typecheck    # tsc --noEmit
+```
+
+### Integration Tests
+
+```bash
+docker compose up -d                  # Start CUBRID
+npm run test:integration              # Run against live DB
+docker compose down -v                # Cleanup
 ```
 
 ## Ecosystem

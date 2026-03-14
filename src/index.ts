@@ -4,6 +4,7 @@ export { CubridTransaction } from "./client/transaction.js";
 export { ConnectionError } from "./errors/connection-error.js";
 export { QueryError } from "./errors/query-error.js";
 export { TransactionError } from "./errors/transaction-error.js";
+export { NativeCubridAdapter } from "./adapters/native.js";
 export type {
   ClientOptions,
   ClientConfig,
