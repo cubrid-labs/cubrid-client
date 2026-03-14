@@ -88,7 +88,7 @@ test("CASConnection connect — reuse broker socket (newPort=0)", async () => {
     // Step 1: Read 10-byte ClientInfoExchange
     socket.once("data", (data) => {
       assert.equal(data.length, 10);
-      assert.equal(data.subarray(0, 5).toString("ascii"), CAS_MAGIC);
+      assert.equal((data as Buffer).subarray(0, 5).toString("ascii"), CAS_MAGIC);
       assert.equal(data[5], CLIENT_JDBC);
       assert.equal(data[6], CAS_VERSION);
 

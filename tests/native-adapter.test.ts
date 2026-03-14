@@ -352,7 +352,7 @@ function buildSelectResponse(
       parts.push(Buffer.alloc(8));
 
       // Column values
-      for (const val of rows[i]) {
+      for (const val of rows[i]!) {
         if (val === null) {
           // NULL: size = -1
           const ns = Buffer.alloc(4);
@@ -498,10 +498,10 @@ test("NativeCubridAdapter query SELECT returns rows", async () => {
 
   const rows = await adapter.query("SELECT id, val FROM t");
   assert.equal(rows.length, 2);
-  assert.equal(rows[0].id, "1");
-  assert.equal(rows[0].val, "hello");
-  assert.equal(rows[1].id, "2");
-  assert.equal(rows[1].val, "world");
+  assert.equal(rows[0]!.id, "1");
+  assert.equal(rows[0]!.val, "hello");
+  assert.equal(rows[1]!.id, "2");
+  assert.equal(rows[1]!.val, "world");
 });
 
 test("NativeCubridAdapter query SELECT with NULL values", async () => {
@@ -516,7 +516,7 @@ test("NativeCubridAdapter query SELECT with NULL values", async () => {
 
   const rows = await adapter.query("SELECT val FROM t");
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].val, null);
+  assert.equal(rows[0]!.val, null);
 });
 
 // ---------------------------------------------------------------------------
@@ -939,8 +939,8 @@ test("NativeCubridAdapter query SELECT fetches remaining rows", async () => {
 
   const rows = await adapter.query("SELECT id FROM t");
   assert.equal(rows.length, 2);
-  assert.equal(rows[0].id, "1");
-  assert.equal(rows[1].id, "2");
+  assert.equal(rows[0]!.id, "1");
+  assert.equal(rows[1]!.id, "2");
   // 3 sendAndRecv calls: PrepareAndExecute + Fetch + CloseReqHandle
   assert.equal(fakeCAS.sendAndRecvCalls, 3);
 });
@@ -971,7 +971,7 @@ test("NativeCubridAdapter query SELECT fetchRemaining stops on zero tupleCount",
   const rows = await adapter.query("SELECT id FROM t");
   // Only 1 row (inline), fetchRemaining stopped because tupleCount = 0
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].id, "1");
+  assert.equal(rows[0]!.id, "1");
 });
 
 // ---------------------------------------------------------------------------

@@ -106,8 +106,8 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
       // SELECT all
       const rows = await client.query("SELECT val, cnt FROM integration_test_native ORDER BY cnt");
       assert.equal(rows.length, 2);
-      assert.equal(rows[0].val, "hello");
-      assert.equal(rows[1].val, "world");
+      assert.equal(rows[0]!.val, "hello");
+      assert.equal(rows[1]!.val, "world");
 
       // UPDATE
       const updateResult = await client.query(
@@ -120,7 +120,7 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
         "SELECT cnt FROM integration_test_native WHERE val = 'hello'",
       );
       assert.equal(updated.length, 1);
-      assert.equal(updated[0].cnt, 100);
+      assert.equal(updated[0]!.cnt, 100);
 
       // DELETE
       const deleteResult = await client.query(
@@ -131,7 +131,7 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
       // Verify delete
       const remaining = await client.query("SELECT val FROM integration_test_native");
       assert.equal(remaining.length, 1);
-      assert.equal(remaining[0].val, "hello");
+      assert.equal(remaining[0]!.val, "hello");
 
       // DROP TABLE
       const dropResult = await client.query("DROP TABLE integration_test_native");
@@ -182,9 +182,9 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
 
       const rows = await client.query("SELECT * FROM dt_test_native");
       assert.equal(rows.length, 1);
-      assert.equal(rows[0].int_col, 42);
-      assert.equal(typeof rows[0].str_col, "string");
-      assert.equal(rows[0].str_col, "test string");
+      assert.equal(rows[0]!.int_col, 42);
+      assert.equal(typeof rows[0]!.str_col, "string");
+      assert.equal(rows[0]!.str_col, "test string");
 
       await client.query("DROP TABLE dt_test_native");
     } finally {
@@ -216,8 +216,8 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
         "SELECT val FROM null_test_native ORDER BY id",
       );
       assert.equal(rows.length, 2);
-      assert.equal(rows[0].val, null);
-      assert.equal(rows[1].val, "not null");
+      assert.equal(rows[0]!.val, null);
+      assert.equal(rows[1]!.val, "not null");
 
       await client.query("DROP TABLE null_test_native");
     } finally {
@@ -249,7 +249,7 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
 
       const rows = await client.query("SELECT val FROM tx_test_native");
       assert.equal(rows.length, 1);
-      assert.equal(rows[0].val, "committed");
+      assert.equal(rows[0]!.val, "committed");
 
       await client.query("DROP TABLE tx_test_native");
     } finally {
@@ -281,7 +281,7 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
 
       const rows = await client.query("SELECT val FROM tx_rb_test_native");
       assert.equal(rows.length, 1);
-      assert.equal(rows[0].val, "kept");
+      assert.equal(rows[0]!.val, "kept");
 
       await client.query("DROP TABLE tx_rb_test_native");
     } finally {
@@ -312,7 +312,7 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
         const rows = await tx.query<{ val: string }>(
           "SELECT val FROM tx_cb_test_native",
         );
-        return rows[0].val;
+        return rows[0]!.val;
       });
 
       assert.equal(result, "via callback");
@@ -363,7 +363,7 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
       // Only the pre-existing row should remain
       const rows = await client.query("SELECT val FROM tx_err_test_native");
       assert.equal(rows.length, 1);
-      assert.equal(rows[0].val, "existing");
+      assert.equal(rows[0]!.val, "existing");
 
       await client.query("DROP TABLE tx_err_test_native");
     } finally {
@@ -399,7 +399,7 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
         [42],
       );
       assert.equal(rows.length, 1);
-      assert.equal(rows[0].str_val, "hello 'world'");
+      assert.equal(rows[0]!.str_val, "hello 'world'");
 
       await client.query("DROP TABLE param_test_native");
     } finally {
@@ -437,8 +437,8 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
         "SELECT id, val FROM fetch_test_native ORDER BY id",
       );
       assert.equal(rows.length, 150);
-      assert.equal(rows[0].val, "row_000");
-      assert.equal(rows[149].val, "row_149");
+      assert.equal(rows[0]!.val, "row_000");
+      assert.equal(rows[149]!.val, "row_149");
 
       await client.query("DROP TABLE fetch_test_native");
     } finally {
@@ -476,7 +476,7 @@ describe("Integration: NativeCubridAdapter against Docker CUBRID", { skip: !avai
     try {
       const rows = await client.query("SELECT 1 + 1 AS result");
       assert.equal(rows.length, 1);
-      assert.equal(rows[0].result, 2);
+      assert.equal(rows[0]!.result, 2);
     } finally {
       await client.close();
     }
