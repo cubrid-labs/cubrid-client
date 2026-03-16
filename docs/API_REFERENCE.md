@@ -416,7 +416,7 @@ try {
     // Human-readable message from cubrid-client
     console.error(error.message); // "Failed to execute CUBRID query."
 
-    // Original error from the node-cubrid driver
+    // Original error from the underlying driver
     console.error(error.cause?.message); // Driver-specific error message
   }
 }

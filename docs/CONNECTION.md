@@ -6,10 +6,11 @@ This guide covers everything you need to connect to a CUBRID database using `cub
 
 - **Node.js** 18 or later
 - **CUBRID** database server running (10.2, 11.0, 11.2, or 11.4)
-- The `node-cubrid` driver installed (peer dependency)
+- **CUBRID** database server running (10.2, 11.0, 11.2, or 11.4)
+- **cubrid-client** includes a built-in native CAS protocol adapter — no additional driver dependencies required.
 
 ```bash
-npm install cubrid-client node-cubrid
+npm install cubrid-client
 ```
 
 ## Basic Connection
@@ -43,7 +44,7 @@ await db.close();
 | `password` | `string` | No | `""` | Database password (empty string for no password) |
 | `connectionTimeout` | `number` | No | — | Connection timeout in milliseconds |
 | `maxConnectionRetryCount` | `number` | No | — | Maximum number of retry attempts on connection failure |
-| `logger` | `unknown` | No | — | Logger instance passed through to the underlying driver |
+| `logger` | `unknown` | No | — | Logger instance (passed to the underlying driver)
 | `connectionFactory` | `ConnectionFactory` | No | — | Custom factory for creating connections (advanced) |
 
 ### Full Example with All Options

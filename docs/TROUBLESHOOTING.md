@@ -194,21 +194,21 @@ try {
 
 ## Driver Issues
 
-### `Cannot find module 'node-cubrid'`
-
-`node-cubrid` is a peer dependency. Install it explicitly:
+If using the legacy `NodeCubridAdapter`, install `node-cubrid` separately:
 
 ```bash
 npm install node-cubrid
 ```
 
-### `node-cubrid driver does not expose a supported query method`
+The default `NativeCubridAdapter` does not require any external driver dependencies.
 
-This means the installed version of `node-cubrid` doesn't have `queryAllAsObjects()`, `queryAll()`, or `execute()`. Update to the latest version:
+If using the legacy `NodeCubridAdapter` with an older version of `node-cubrid`, update to the latest version:
 
 ```bash
 npm install node-cubrid@latest
 ```
+
+The default `NativeCubridAdapter` does not expose this limitation.
 
 ### ESM vs CommonJS import issues
 
