@@ -835,7 +835,7 @@ test("interpolateParams handles bigint", () => {
 });
 
 test("interpolateParams handles Date", () => {
-  const d = new Date(2025, 2, 14, 10, 30, 45, 123);
+  const d = new Date(Date.UTC(2025, 2, 14, 10, 30, 45, 123));
   const result = interpolateParams("SELECT ?", [d]);
   assert.ok(result.includes("DATETIME'2025-03-14 10:30:45.123'"));
 });
@@ -848,6 +848,16 @@ test("interpolateParams handles Buffer", () => {
 test("interpolateParams preserves strings inside single quotes", () => {
   const result = interpolateParams("SELECT * FROM t WHERE name = '?' AND id = ?", [42]);
   assert.equal(result, "SELECT * FROM t WHERE name = '?' AND id = 42");
+});
+
+test("interpolateParams skips ? inside block comments", () => {
+  const result = interpolateParams("SELECT 1 /* ? */ WHERE id = ?", [7]);
+  assert.equal(result, "SELECT 1 /* ? */ WHERE id = 7");
+});
+
+test("interpolateParams skips ? inside line comments", () => {
+  const result = interpolateParams("SELECT 1 -- ?\nWHERE id = ?", [7]);
+  assert.equal(result, "SELECT 1 -- ?\nWHERE id = 7");
 });
 
 test("interpolateParams preserves strings inside double quotes", () => {
@@ -905,8 +915,71 @@ test("formatValue escapes string", () => {
 });
 
 test("formatValue formats Date", () => {
-  const d = new Date(2025, 0, 1, 0, 0, 0, 0);
+  const d = new Date(Date.UTC(2025, 0, 1, 0, 0, 0, 0));
   assert.equal(formatValue(d), "DATETIME'2025-01-01 00:00:00.000'");
+});
+
+test("formatValue formats Date using UTC getters", () => {
+  class FakeDate extends Date {
+    override getFullYear(): number {
+      return 2000;
+    }
+
+    override getMonth(): number {
+      return 0;
+    }
+
+    override getDate(): number {
+      return 1;
+    }
+
+    override getHours(): number {
+      return 0;
+    }
+
+    override getMinutes(): number {
+      return 0;
+    }
+
+    override getSeconds(): number {
+      return 0;
+    }
+
+    override getMilliseconds(): number {
+      return 0;
+    }
+
+    override getUTCFullYear(): number {
+      return 2025;
+    }
+
+    override getUTCMonth(): number {
+      return 2;
+    }
+
+    override getUTCDate(): number {
+      return 14;
+    }
+
+    override getUTCHours(): number {
+      return 10;
+    }
+
+    override getUTCMinutes(): number {
+      return 30;
+    }
+
+    override getUTCSeconds(): number {
+      return 45;
+    }
+
+    override getUTCMilliseconds(): number {
+      return 123;
+    }
+  }
+
+  const d = new FakeDate("2025-03-14T10:30:45.123Z");
+  assert.equal(formatValue(d), "DATETIME'2025-03-14 10:30:45.123'");
 });
 
 test("formatValue formats Buffer", () => {

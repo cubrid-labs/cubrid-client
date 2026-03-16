@@ -506,30 +506,100 @@ function encodeOneParam(w: PacketWriter, value: unknown): void {
 export function interpolateParams(sql: string, params: readonly unknown[]): string {
   let paramIndex = 0;
   let result = "";
-  let inString = false;
-  let stringChar = "";
+  let inSingleQuotedString = false;
+  let inDoubleQuotedString = false;
+  let inBlockComment = false;
+  let inLineComment = false;
 
   for (let i = 0; i < sql.length; i++) {
     const ch = sql[i]!;
+    const next = i + 1 < sql.length ? sql[i + 1]! : "";
 
-    if (inString) {
+    if (inSingleQuotedString) {
       result += ch;
-      if (ch === stringChar) {
-        // Check for escaped quote
-        if (i + 1 < sql.length && sql[i + 1] === stringChar) {
-          result += sql[i + 1];
+
+      if (ch === "\\" && next !== "") {
+        result += next;
+        i++;
+        continue;
+      }
+
+      if (ch === "'") {
+        if (next === "'") {
+          result += next;
           i++;
-        } else {
-          inString = false;
+          continue;
         }
+        inSingleQuotedString = false;
+      }
+
+      continue;
+    }
+
+    if (inDoubleQuotedString) {
+      result += ch;
+
+      if (ch === "\\" && next !== "") {
+        result += next;
+        i++;
+        continue;
+      }
+
+      if (ch === '"') {
+        if (next === '"') {
+          result += next;
+          i++;
+          continue;
+        }
+        inDoubleQuotedString = false;
+      }
+
+      continue;
+    }
+
+    if (inBlockComment) {
+      result += ch;
+      if (ch === "*" && next === "/") {
+        result += next;
+        i++;
+        inBlockComment = false;
       }
       continue;
     }
 
-    if (ch === "'" || ch === '"') {
-      inString = true;
-      stringChar = ch;
+    if (inLineComment) {
       result += ch;
+      if (ch === "\n" || ch === "\r") {
+        inLineComment = false;
+      }
+      continue;
+    }
+
+    if (ch === "'") {
+      inSingleQuotedString = true;
+      result += ch;
+      continue;
+    }
+
+    if (ch === '"') {
+      inDoubleQuotedString = true;
+      result += ch;
+      continue;
+    }
+
+    if (ch === "/" && next === "*") {
+      inBlockComment = true;
+      result += ch;
+      result += next;
+      i++;
+      continue;
+    }
+
+    if (ch === "-" && next === "-") {
+      inLineComment = true;
+      result += ch;
+      result += next;
+      i++;
       continue;
     }
 
@@ -596,13 +666,13 @@ function escapeString(value: string): string {
 }
 
 function formatDatetime(date: Date): string {
-  const y = date.getFullYear();
-  const mo = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  const h = String(date.getHours()).padStart(2, "0");
-  const mi = String(date.getMinutes()).padStart(2, "0");
-  const s = String(date.getSeconds()).padStart(2, "0");
-  const ms = String(date.getMilliseconds()).padStart(3, "0");
+  const y = date.getUTCFullYear();
+  const mo = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  const h = String(date.getUTCHours()).padStart(2, "0");
+  const mi = String(date.getUTCMinutes()).padStart(2, "0");
+  const s = String(date.getUTCSeconds()).padStart(2, "0");
+  const ms = String(date.getUTCMilliseconds()).padStart(3, "0");
   return `DATETIME'${y}-${mo}-${d} ${h}:${mi}:${s}.${ms}'`;
 }
 
