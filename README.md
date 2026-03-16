@@ -282,6 +282,7 @@ Performance benchmarks comparing CUBRID drivers against MySQL are tracked in the
 | [pycubrid](https://github.com/cubrid-labs/pycubrid) | Python DB-API 2.0 driver |
 | [sqlalchemy-cubrid](https://github.com/cubrid-labs/sqlalchemy-cubrid) | SQLAlchemy 2.0 dialect |
 | [cubrid-go](https://github.com/cubrid-labs/cubrid-go) | Go database/sql driver + GORM |
+| [cubrid-rs](https://github.com/cubrid-labs/cubrid-rs) | Native Rust database driver for CUBRID (sync + async, pure Rust) |
 | [cubrid-cookbook](https://github.com/cubrid-labs/cubrid-cookbook) | Framework integration examples |
 
 ## License
