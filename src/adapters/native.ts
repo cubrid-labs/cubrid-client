@@ -16,7 +16,6 @@ import {
   writeEndTran,
   writeConClose,
   interpolateParams,
-  type ColumnMeta,
   type PrepareAndExecuteResult,
 } from "../protocol/protocol.js";
 import { EndTranType, StatementType } from "../protocol/constants.js";
@@ -27,6 +26,8 @@ import type { QueryParams } from "../types/query.js";
 import type { QueryResultRow } from "../types/result.js";
 
 const DEFAULT_FETCH_SIZE = 100;
+const RETRY_BASE_DELAY_MS = 100;
+const RETRY_MAX_DELAY_MS = 2000;
 
 export class NativeCubridAdapter implements DriverAdapter {
   private cas: CASConnection | null = null;
@@ -48,48 +49,19 @@ export class NativeCubridAdapter implements DriverAdapter {
     sql: string,
     params?: QueryParams,
   ): Promise<T[]> {
-    try {
-      const cas = this.getOrCreateCAS();
+    const maxRetries = this.autoCommit ? (this.config.maxConnectionRetryCount ?? 0) : 0;
 
-      if (!cas.isConnected) {
-        await cas.connect();
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.executeQuery<T>(sql, params);
+      } catch (error) {
+        if (attempt < maxRetries && isTransientConnectionError(error)) {
+          this.resetConnection();
+          await sleep(retryDelay(attempt));
+          continue;
+        }
+        throw mapError("query", error, "Failed to execute CUBRID query.");
       }
-
-      // Client-side parameter interpolation (CUBRID CAS doesn't reliably support bind params)
-      const resolvedSql = params && params.length > 0 ? interpolateParams(sql, params) : sql;
-
-      // Send PrepareAndExecute (FC=41)
-      const { header, payload } = writePrepareAndExecute(
-        resolvedSql,
-        this.autoCommit,
-        cas.casInfo,
-      );
-      const responsePayload = await cas.sendAndRecv(header, payload);
-
-      const result: PrepareAndExecuteResult = parsePrepareAndExecute(
-        responsePayload,
-        cas.protoVersion,
-      );
-
-      // For non-SELECT statements, close handle and return empty array
-      if (result.statementType !== StatementType.SELECT) {
-        await this.closeQueryHandle(cas, result.queryHandle);
-        return [] as unknown as T[];
-      }
-
-      // For SELECT: collect all rows via inline fetch + additional fetches
-      const allRows = [...result.rows];
-
-      if (result.totalTupleCount > allRows.length) {
-        await this.fetchRemaining(cas, result, allRows);
-      }
-
-      // Close the query handle
-      await this.closeQueryHandle(cas, result.queryHandle);
-
-      return allRows as T[];
-    } catch (error) {
-      throw mapError("query", error, "Failed to execute CUBRID query.");
     }
   }
 
@@ -153,7 +125,6 @@ export class NativeCubridAdapter implements DriverAdapter {
 
     try {
       if (cas.isConnected) {
-        // Best-effort: send CON_CLOSE before destroying socket
         try {
           const { header, payload } = writeConClose(cas.casInfo);
           await cas.send(header, payload);
@@ -168,9 +139,70 @@ export class NativeCubridAdapter implements DriverAdapter {
     }
   }
 
+  async ping(): Promise<string> {
+    try {
+      const cas = this.getOrCreateCAS();
+
+      if (!cas.isConnected) {
+        await cas.connect();
+      }
+
+      return await cas.ping();
+    } catch (error) {
+      throw mapError("connection", error, "Health check failed.");
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Internal helpers
   // ---------------------------------------------------------------------------
+
+  private async executeQuery<T extends QueryResultRow>(
+    sql: string,
+    params?: QueryParams,
+  ): Promise<T[]> {
+    const cas = this.getOrCreateCAS();
+
+    if (!cas.isConnected) {
+      await cas.connect();
+    }
+
+    const resolvedSql = params && params.length > 0 ? interpolateParams(sql, params) : sql;
+
+    const { header, payload } = writePrepareAndExecute(
+      resolvedSql,
+      this.autoCommit,
+      cas.casInfo,
+    );
+    const responsePayload = await cas.sendAndRecv(header, payload);
+
+    const result: PrepareAndExecuteResult = parsePrepareAndExecute(
+      responsePayload,
+      cas.protoVersion,
+    );
+
+    if (result.statementType !== StatementType.SELECT) {
+      await this.closeQueryHandle(cas, result.queryHandle);
+      return [] as unknown as T[];
+    }
+
+    const allRows = [...result.rows];
+
+    if (result.totalTupleCount > allRows.length) {
+      await this.fetchRemaining(cas, result, allRows);
+    }
+
+    await this.closeQueryHandle(cas, result.queryHandle);
+
+    return allRows as T[];
+  }
+
+  private resetConnection(): void {
+    if (this.cas) {
+      this.cas.close().catch(() => {});
+      this.cas = null;
+    }
+  }
 
   private getOrCreateCAS(): CASConnection {
     if (!this.cas) {
@@ -225,4 +257,26 @@ export class NativeCubridAdapter implements DriverAdapter {
       // Best-effort cleanup — ignore errors
     }
   }
+}
+
+function isTransientConnectionError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes("epipe") ||
+    msg.includes("econnreset") ||
+    msg.includes("closed by the remote side") ||
+    msg.includes("connection closed") ||
+    msg.includes("connection ended") ||
+    msg.includes("not connected")
+  );
+}
+
+function retryDelay(attempt: number): number {
+  const delay = RETRY_BASE_DELAY_MS * 2 ** attempt;
+  return Math.min(delay, RETRY_MAX_DELAY_MS);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
